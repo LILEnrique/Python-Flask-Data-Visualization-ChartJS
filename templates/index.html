@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container vh-100 mt-4"  >
+        <div class="row justify-content-center ">
+          <div class="col-7">
+            <div class="card bg-light text-center ">
+            <div class="card-header title ">Monitoreo ambiental</div>
+              <div class="card-body">
+                <canvas id="lineChart"></canvas>
+                <canvas id="lineChart2"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <!--suppress JSUnresolvedLibraryURL -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+    <!--suppress JSUnresolvedLibraryURL -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const config = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    labels2: [],
+                    labels3: [],
+                    datasets: [{
+                        label: "MP 1.0 UG/M3",
+                        backgroundColor: 'rgb(255, 99, 132)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        data: [],
+                        fill: false,
+                    }, {
+                        label: "MP 2.5 UG/M3",
+                        backgroundColor: 'rgb(2, 99, 132)',
+                        borderColor: 'rgb(2, 99, 132)',
+                        data: [],
+                        fill: false,
+                    }, {
+                        label: "MP 10 UG/M3",
+                        backgroundColor: 'rgb(100, 9, 132)',
+                        borderColor: 'rgb(100, 9, 132)',
+                        data: [],
+                        fill: false,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Grafico de material particulado en el ambiente'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time'
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Value'
+                            }
+                        }],
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time'
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Value'
+                            }
+                        }],
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Particulas'
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Cantidad'
+                            }
+                        }]
+                    }
+                }
+            };
+
+            const config2 = {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: "Grados",
+                        backgroundColor: 'rgb(155, 199, 32)',
+                        borderColor: 'rgb(255, 199, 132)',
+                        data: [],
+                        fill: false,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Temperatura Ambiental'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Temperatura Ambiental'
+                            }
+                        }],
+                        yAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Grados'
+                            }
+                        }]
+                    }
+                }
+            };
+
+            const context = document.getElementById('lineChart').getContext('2d');
+            const context2 = document.getElementById('lineChart2').getContext('2d');
+            const lineChart = new Chart(context, config);
+            const lineChart2 = new Chart(context2, config2);
+
+            const source = new EventSource("/chart-data");
+            const source2 = new EventSource("/chart-data2");
+            const source3 = new EventSource("/chart-data3");
+            const source4 = new EventSource("/chart-data4");
+
+            source.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (config.data.labels.length === 20) {
+                    config.data.labels.shift();
+                    config.data.datasets[0].data.shift();
+                }
+                config.data.labels.push(data.time);
+                config.data.datasets[0].data.push(data.value);
+                lineChart.update();
+            };
+
+            source2.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (config.data.labels.length === 20) {
+                    config.data.labels.shift();
+                    config.data.datasets[1].data.shift();
+                }
+                config.data.labels2.push(data.time2);
+                config.data.datasets[1].data.push(data.value2);
+                lineChart.update();
+            };
+
+            source3.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (config.data.labels.length === 20) {
+                    config.data.labels.shift();
+                    config.data.datasets[2].data.shift();
+                }
+                config.data.labels3.push(data.time3);
+                config.data.datasets[2].data.push(data.value3);
+                lineChart.update();
+            };
+
+            source4.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (config2.data.labels.length === 20) {
+                    config2.data.labels.shift();
+                    config2.data.datasets[0].data.shift();
+                }
+                config2.data.labels.push(data.time4);
+                config2.data.datasets[0].data.push(data.value4);
+                lineChart2.update();
+            };
+        });
+
+    </script>
+   
+</body>
+</html>
